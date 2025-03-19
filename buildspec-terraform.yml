@@ -1,0 +1,40 @@
+version: 0.2
+
+env:
+  variables:
+    ENVIRONMENT: "dev"  # Default environment, can be overridden
+    TF_VAR_environment: $ENVIRONMENT  # Pass environment to Terraform
+    DESTROY_INFRA: "false"  # Default to not destroy infrastructure, can be overridden
+
+phases:
+  install:
+    commands:
+      - echo "Installing Terraform..."
+      - wget https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip
+      - unzip terraform_1.5.7_linux_amd64.zip
+      - mv terraform /usr/local/bin/
+      - terraform --version  # Verify installation
+      - echo "Installing AWS CLI..."
+      - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      - unzip awscliv2.zip
+      - sudo ./aws/install
+      - aws --version  # Verify AWS CLI
+
+  pre_build:
+    commands:
+      - echo "Initializing Terraform for environment: $ENVIRONMENT..."
+      - terraform init
+
+  build:
+    commands:
+      - if [ "$DESTROY_INFRA" = "true" ]; then
+          echo "Destroying Terraform-managed infrastructure for environment: $ENVIRONMENT...";
+          terraform destroy -auto-approve;
+        else
+          echo "Applying Terraform configuration for environment: $ENVIRONMENT...";
+          terraform apply -auto-approve;
+        fi
+
+artifacts:
+  files:
+    - '**/*'
